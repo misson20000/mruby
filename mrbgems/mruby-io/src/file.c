@@ -88,7 +88,7 @@ flock(int fd, int operation) {
 mrb_value
 mrb_file_s_umask(mrb_state *mrb, mrb_value klass)
 {
-#if defined(_WIN32) || defined(_WIN64)
+#if defined(_WIN32) || defined(_WIN64) || defined(__SWITCH__)
   /* nothing to do on windows */
   return mrb_fixnum_value(0);
 

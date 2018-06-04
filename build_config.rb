@@ -2,6 +2,7 @@ MRuby::Build.new do |conf|
   # load specific toolchain settings
 
   # Gets set by the VS command prompts.
+  toolchain :clang
   if ENV['VisualStudioVersion'] || ENV['VSINSTALLDIR']
     toolchain :visualcpp
   else
@@ -149,3 +150,52 @@ end
 #
 #   conf.test_runner.command = 'env'
 # end
+
+LIBTRANSISTOR_HOME = ENV["LIBTRANSISTOR_HOME"]
+if LIBTRANSISTOR_HOME == nil then
+  raise "set LIBTRANSISTOR_HOME in environment"
+end
+
+MRuby::CrossBuild.new("transistor") do |conf|
+  toolchain :clang
+  enable_debug
+
+  conf.gembox "transistor"
+  conf.gem "../mruby-transistor"
+  conf.gem "../mruby-circuitbreaker"
+
+  conf.cc do |cc|
+    cc.command = "clang"
+    cc.include_paths = ["#{LIBTRANSISTOR_HOME}/include/", "#{root}/include/"]
+    cc.flags = "-g -fPIC -fexceptions -fuse-ld=lld -fstack-protector-strong -O3 -mtune=cortex-a53 -target aarch64-none-linux-gnu -nostdlib -nostdlibinc -D__SWITCH__=1 -Wno-unused-command-line-argument"
+  end
+
+  conf.cxx do |cxx|
+    cxx.command = "clang++"
+    cxx.include_paths = ["#{LIBTRANSISTOR_HOME}/include/", "#{root}/include/", "#{LIBTRANSISTOR_HOME}/include/c++/v1/"]
+    cxx.flags = "-g -fPIC -fexceptions -fuse-ld=lld -fstack-protector-strong -O3 -mtune=cortex-a53 -target aarch64-none-linux-gnu -nostdlib -nostdlibinc -D__SWITCH__=1 -Wno-unused-command-line-argument -std=c++17 -stdlib=libc++ -nodefaultlibs -nostdinc++"
+  end
+
+  class << conf.cc
+    def header_search_paths
+      include_paths
+    end
+  end
+
+  class << conf.cxx
+    def header_search_paths
+      include_paths
+    end
+  end
+
+  conf.linker do |linker|
+    linker.command = "ld.lld"
+    linker.flags = "-Bsymbolic --shared --no-undefined --no-gc-sections --eh-frame-hdr -T #{LIBTRANSISTOR_HOME}/link.T -L #{LIBTRANSISTOR_HOME}/lib/"
+    linker.flags_before_libraries = "--whole-archive -ltransistor.nro --no-whole-archive"
+    linker.libraries = ["c", "m", "clang_rt.builtins-aarch64", "pthread", "lzma", "c++", "c++abi", "unwind"]
+  end
+
+  conf.exts do |exts|
+    exts.executable = ".nro.so"
+  end
+end

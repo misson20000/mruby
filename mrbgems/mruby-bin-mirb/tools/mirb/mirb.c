@@ -39,15 +39,9 @@
 #define MIRB_USING_HISTORY()
 #endif
 
-#ifndef _WIN32
-#define MIRB_SIGSETJMP(env) sigsetjmp(env, 1)
-#define MIRB_SIGLONGJMP(env, val) siglongjmp(env, val)
-#define SIGJMP_BUF sigjmp_buf
-#else
 #define MIRB_SIGSETJMP(env) setjmp(env)
 #define MIRB_SIGLONGJMP(env, val) longjmp(env, val)
 #define SIGJMP_BUF jmp_buf
-#endif
 
 #include <mruby.h>
 #include <mruby/array.h>
